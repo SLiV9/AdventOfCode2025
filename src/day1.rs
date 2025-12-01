@@ -54,6 +54,7 @@ pub fn part2(input: &str) -> u32
 		let amount: u32 = number.parse().unwrap();
 		times_zero += amount / 100;
 		let amount = amount % 100;
+		debug_assert!(amount > 0, "The puzzle would be harder if this were false");
 		match direction
 		{
 			Direction::Left =>
@@ -79,13 +80,14 @@ pub fn part2(input: &str) -> u32
 			Direction::Right =>
 			{
 				dial += amount;
-				if dial > 100
+				if dial >= 100
 				{
 					dial -= 100;
 					times_zero += 1;
 				}
 			}
-		};
+		}
+		debug_assert!(dial < 100);
 	}
 	times_zero
 }
