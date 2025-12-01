@@ -62,9 +62,17 @@ pub fn part2(input: &str) -> u32
 				{
 					dial -= amount;
 				}
+				else if amount == dial {
+					dial = 0;
+					times_zero += 1;
+				}
+				else if dial == 0 {
+					dial = 100 - amount;
+				}
 				else
 				{
-					dial = (dial + 100 - amount) % 100;
+					dial = dial + 100 - amount;
+					debug_assert!(dial < 100);
 					times_zero += 1;
 				}
 			}
@@ -119,5 +127,21 @@ L99
 R14
 L82";
 		assert_eq!(part2(given), 6);
+	}
+
+
+	#[test]
+	fn test_day1_part2_testcases()
+	{
+		assert_eq!(part2("R50\nR10"), 1);
+		assert_eq!(part2("R50\nR50\nR50\nR10"), 2);
+		assert_eq!(part2("R150\nR10"), 2);
+		assert_eq!(part2("R49\nR51\nR50\nR10"), 2);
+		assert_eq!(part2("R51\nR49\nR50\nR10"), 2);
+		assert_eq!(part2("L50"), 1);
+		assert_eq!(part2("L50\nL50\nL50\nL10"), 2);
+		assert_eq!(part2("L150\nL10"), 2);
+		assert_eq!(part2("L49\nL51\nL50\nL10"), 2);
+		assert_eq!(part2("L51\nL49\nL50\nL10"), 2);
 	}
 }
