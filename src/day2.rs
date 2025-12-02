@@ -1,61 +1,21 @@
 #[aoc(day2, part1)]
 pub fn part1(input: &str) -> u64
 {
-	let mut sum_of_invalids = 0;
-	for line in input.as_bytes().split(|&x| x == b',')
-	{
-		if line.is_empty()
-		{
-			continue;
-		}
-		let mut parts = line.split(|&x| x == b'-');
-		let start = parts.next().unwrap();
-		let end = parts.next().unwrap();
-		debug_assert!(parts.next().is_none());
-
-		let start_len = start.len() as u32;
-		let end_len = end.len() as u32;
-		let start = parse_id(start);
-		let end = parse_id(end);
-		debug_assert!(start <= end);
-
-		if start_len == end_len
-		{
-			if start_len % 2 == 0
-			{
-				let chunksize = 10u64.pow(start_len / 2);
-				assess(start, end, chunksize, &mut sum_of_invalids);
-			}
-			else
-			{
-				// There are no invalid odd-length numbers.
-			}
-		}
-		else if start_len + 1 == end_len
-		{
-			if start_len % 2 == 0
-			{
-				let chunksize = 10u64.pow(start_len / 2);
-				let end_of_chunks = 10u64.pow(start_len) - 1;
-				assess(start, end_of_chunks, chunksize, &mut sum_of_invalids);
-			}
-			else
-			{
-				let chunksize = 10u64.pow(end_len / 2);
-				let start_of_chunks = 10u64.pow(end_len - 1);
-				assess(start_of_chunks, end, chunksize, &mut sum_of_invalids);
-			}
-		}
-		else
-		{
-			unimplemented!()
-		}
-	}
-	sum_of_invalids
+	parse_input(input)
+		.map(|(start, end)| assess_part1(start, end))
+		.sum()
 }
 
-fn parse_id(id: &[u8]) -> u64
+#[derive(Clone, Copy, Debug)]
+struct Id
 {
+	value: u64,
+	len: u32,
+}
+
+fn parse_id(id: &[u8]) -> Id
+{
+	let len = id.len() as u32;
 	let mut sum = 0;
 	for &digit in id
 	{
@@ -63,11 +23,68 @@ fn parse_id(id: &[u8]) -> u64
 		sum *= 10;
 		sum += (digit - b'0') as u64;
 	}
-	sum
+	let value = sum;
+	Id { value, len }
 }
 
-fn assess(start: u64, end: u64, chunksize: u64, sum_of_invalids: &mut u64)
+fn parse_input(input: &str) -> impl Iterator<Item = (Id, Id)>
 {
+	input
+		.as_bytes()
+		.split(|&x| x == b',')
+		.filter(|x| !x.is_empty())
+		.map(|line| {
+			let mut parts = line.split(|&x| x == b'-');
+			let start = parts.next().unwrap();
+			let end = parts.next().unwrap();
+			debug_assert!(parts.next().is_none());
+			let start = parse_id(start);
+			let end = parse_id(end);
+			(start, end)
+		})
+}
+
+fn assess_part1(start: Id, end: Id) -> u64
+{
+	debug_assert!(start.value <= end.value);
+
+	if start.len == end.len
+	{
+		if start.len % 2 == 0
+		{
+			let chunksize = 10u64.pow(start.len / 2);
+			assess2(start.value, end.value, chunksize)
+		}
+		else
+		{
+			// There are no invalid odd-length numbers.
+			0
+		}
+	}
+	else if start.len + 1 == end.len
+	{
+		if start.len % 2 == 0
+		{
+			let chunksize = 10u64.pow(start.len / 2);
+			let end_of_chunks = 10u64.pow(start.len) - 1;
+			assess2(start.value, end_of_chunks, chunksize)
+		}
+		else
+		{
+			let chunksize = 10u64.pow(end.len / 2);
+			let start_of_chunks = 10u64.pow(end.len - 1);
+			assess2(start_of_chunks, end.value, chunksize)
+		}
+	}
+	else
+	{
+		unimplemented!()
+	}
+}
+
+fn assess2(start: u64, end: u64, chunksize: u64) -> u64
+{
+	let mut sum_of_invalids = 0;
 	let start_in_chunks = start / chunksize;
 	let end_in_chunks = end / chunksize;
 	debug_assert!(end_in_chunks < chunksize);
@@ -77,7 +94,7 @@ fn assess(start: u64, end: u64, chunksize: u64, sum_of_invalids: &mut u64)
 		// Guaranteed to be inside the range.
 		debug_assert!(chunk < chunksize);
 		let invalid_id = chunk * chunksize + chunk;
-		*sum_of_invalids += invalid_id;
+		sum_of_invalids += invalid_id;
 	}
 
 	if end_in_chunks > start_in_chunks
@@ -85,21 +102,31 @@ fn assess(start: u64, end: u64, chunksize: u64, sum_of_invalids: &mut u64)
 		let invalid_id = end_in_chunks * chunksize + end_in_chunks;
 		if invalid_id <= end
 		{
-			*sum_of_invalids += invalid_id;
+			sum_of_invalids += invalid_id;
 		}
 	}
 
 	let invalid_id = start_in_chunks * chunksize + start_in_chunks;
 	if (start..=end).contains(&invalid_id)
 	{
-		*sum_of_invalids += invalid_id;
+		sum_of_invalids += invalid_id;
 	}
+	sum_of_invalids
 }
 
 #[aoc(day2, part2)]
-pub fn part2(input: &str) -> i32
+pub fn part2(input: &str) -> u64
 {
-	input.len() as i32
+	parse_input(input)
+		.map(|(start, end)| assess_part2(start, end))
+		.sum()
+}
+
+fn assess_part2(start: Id, end: Id) -> u64
+{
+	// if len is 8, don't count 2's because they are already counted as 4's
+	// only count 1's if len is prime
+	todo!()
 }
 
 #[cfg(test)]
