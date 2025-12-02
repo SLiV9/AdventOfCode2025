@@ -52,8 +52,7 @@ fn assess_part1(start: Id, end: Id) -> u64
 	{
 		if start.len % 2 == 0
 		{
-			let chunksize = 10u64.pow(start.len / 2);
-			assess2(start.value, end.value, chunksize)
+			assess2(start.len, start.value, end.value)
 		}
 		else
 		{
@@ -65,15 +64,13 @@ fn assess_part1(start: Id, end: Id) -> u64
 	{
 		if start.len % 2 == 0
 		{
-			let chunksize = 10u64.pow(start.len / 2);
-			let end_of_chunks = 10u64.pow(start.len) - 1;
-			assess2(start.value, end_of_chunks, chunksize)
+			let mid_value = 10u64.pow(start.len) - 1;
+			assess2(start.len, start.value, mid_value)
 		}
 		else
 		{
-			let chunksize = 10u64.pow(end.len / 2);
-			let start_of_chunks = 10u64.pow(end.len - 1);
-			assess2(start_of_chunks, end.value, chunksize)
+			let mid_value = 10u64.pow(end.len - 1);
+			assess2(end.len, mid_value, end.value)
 		}
 	}
 	else
@@ -82,36 +79,19 @@ fn assess_part1(start: Id, end: Id) -> u64
 	}
 }
 
-fn assess2(start: u64, end: u64, chunksize: u64) -> u64
+fn assess2(len: u32, start: u64, end: u64) -> u64
 {
-	let mut sum_of_invalids = 0;
-	let start_in_chunks = start / chunksize;
-	let end_in_chunks = end / chunksize;
-	debug_assert!(end_in_chunks < chunksize);
-
-	for chunk in (start_in_chunks + 1)..end_in_chunks
+	match len
 	{
-		// Guaranteed to be inside the range.
-		debug_assert!(chunk < chunksize);
-		let invalid_id = chunk * chunksize + chunk;
-		sum_of_invalids += invalid_id;
+		0 => 0,
+		2 => eval::<2, 1>(start, end),
+		4 => eval::<2, 2>(start, end),
+		6 => eval::<2, 3>(start, end),
+		8 => eval::<2, 4>(start, end),
+		10 => eval::<2, 5>(start, end),
+		12.. => unimplemented!(),
+		_ => unreachable!(),
 	}
-
-	if end_in_chunks > start_in_chunks
-	{
-		let invalid_id = end_in_chunks * chunksize + end_in_chunks;
-		if invalid_id <= end
-		{
-			sum_of_invalids += invalid_id;
-		}
-	}
-
-	let invalid_id = start_in_chunks * chunksize + start_in_chunks;
-	if (start..=end).contains(&invalid_id)
-	{
-		sum_of_invalids += invalid_id;
-	}
-	sum_of_invalids
 }
 
 #[aoc(day2, part2)]
@@ -126,7 +106,7 @@ fn assess_part2(start: Id, end: Id) -> u64
 {
 	if start.len == end.len
 	{
-		assess_part2_(start, end)
+		assess_part2_equal_len(start, end)
 	}
 	else
 	{
@@ -140,52 +120,50 @@ fn assess_part2(start: Id, end: Id) -> u64
 			value: mid,
 			len: end.len,
 		};
-		assess_part2_(start, mid0) + assess_part2_(mid1, end)
+		assess_part2_equal_len(start, mid0) + assess_part2_equal_len(mid1, end)
 	}
 }
 
-const PRIMES: [u32; 8] = [2, 3, 5, 7, 11, 13, 17, 19];
-const DOUBLETS: [u32; 4] = [6, 10, 14, 15];
-
-fn assess_part2_(start: Id, end: Id) -> u64
+fn assess_part2_equal_len(start: Id, end: Id) -> u64
 {
-	let sum_of_invalids: u64 = PRIMES
-		.iter()
-		.copied()
-		.map(|prime| assess_divisor(start, end, prime))
-		.sum();
-	let sum_of_double_counted: u64 = DOUBLETS
-		.iter()
-		.copied()
-		.map(|divisor| assess_divisor(start, end, divisor))
-		.sum();
-	sum_of_invalids - sum_of_double_counted
-}
-
-fn assess_divisor(start: Id, end: Id, divisor: u32) -> u64
-{
-	if start.len % divisor != 0
+	debug_assert_eq!(start.len, end.len);
+	let len = start.len;
+	let a = start.value;
+	let b = end.value;
+	match len
 	{
-		return 0;
+		0 => 0,
+		1 => 0,
+		2 => eval::<2, 1>(a, b),
+		3 => eval::<3, 1>(a, b),
+		4 => eval::<2, 2>(a, b),
+		5 => eval::<5, 1>(a, b),
+		6 => eval::<2, 3>(a, b) + eval::<3, 2>(a, b) - eval::<6, 1>(a, b),
+		7 => eval::<7, 1>(a, b),
+		8 => eval::<2, 4>(a, b),
+		9 => eval::<3, 3>(a, b),
+		10 => eval::<2, 5>(a, b) + eval::<5, 2>(a, b) - eval::<10, 1>(a, b),
+		11.. => unimplemented!(),
 	}
-	let mut sum_of_invalids = 0;
+}
 
-	let num_digits_per_chunk = start.len / divisor;
-
+fn eval<const DIVISOR: u32, const QUOTIENT: u32>(start: u64, end: u64) -> u64
+{
 	let build_invalid_id = |chunk| {
 		let mut invalid_id = chunk;
-		for _ in 1..divisor
+		for _ in 1..DIVISOR
 		{
-			invalid_id *= 10u64.pow(num_digits_per_chunk);
+			invalid_id *= 10u64.pow(QUOTIENT);
 			invalid_id += chunk;
 		}
 		invalid_id
 	};
 
-	let chunksize = 10u64.pow(start.len - num_digits_per_chunk);
-	let start_in_chunks = start.value / chunksize;
-	let end_in_chunks = end.value / chunksize;
+	let chunksize = 10u64.pow((DIVISOR - 1) * QUOTIENT);
+	let start_in_chunks = start / chunksize;
+	let end_in_chunks = end / chunksize;
 
+	let mut sum_of_invalids = 0;
 	for chunk in (start_in_chunks + 1)..end_in_chunks
 	{
 		let invalid_id = build_invalid_id(chunk);
@@ -195,14 +173,14 @@ fn assess_divisor(start: Id, end: Id, divisor: u32) -> u64
 	if end_in_chunks > start_in_chunks
 	{
 		let invalid_id = build_invalid_id(end_in_chunks);
-		if invalid_id <= end.value
+		if invalid_id <= end
 		{
 			sum_of_invalids += invalid_id;
 		}
 	}
 
 	let invalid_id = build_invalid_id(start_in_chunks);
-	if (start.value..=end.value).contains(&invalid_id)
+	if (start..=end).contains(&invalid_id)
 	{
 		sum_of_invalids += invalid_id;
 	}
@@ -235,7 +213,7 @@ mod tests
 	fn test_part2_duplicates()
 	{
 		let mut id = 22;
-		for _ in 0..15
+		for _length in 2..=10
 		{
 			let input = format!("{id}-{id}");
 			assert_eq!(part2(&input), id);
