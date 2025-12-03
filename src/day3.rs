@@ -87,12 +87,13 @@ impl<const N: usize> Solver<N> {
 	}
 
 	fn process(&mut self, ascii_digit_or_whitespace: u8) {
-		let Some(digit_value) = ascii_digit_or_whitespace.checked_sub(b'0') else {
-			self.sum += self.row[0];
-			self.row = [0; N];
-			return;
-		};
-		let digit_value = u64::from(digit_value);
+		debug_assert!(b"\r\n\t 0123456789".contains(&ascii_digit_or_whitespace));
+		let is_digit = (ascii_digit_or_whitespace & 0b00010000) != 0;
+		let digit_value = u64::from(ascii_digit_or_whitespace & 0b00001111);
+
+		let break_mask = if is_digit { 0u64 } else { u64::MAX };
+		self.sum += break_mask & self.row[0];
+
 		let mut candidates = [0; N];
 		for i in 0..(N - 1) {
 			candidates[i] = self.row[i + 1];
@@ -105,6 +106,9 @@ impl<const N: usize> Solver<N> {
 		}
 		for i in 0..N {
 			self.row[i] = self.row[i].max(candidates[i]);
+		}
+		for i in 0..N {
+			self.row[i] = self.row[i] & !break_mask;
 		}
 	}
 
