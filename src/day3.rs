@@ -93,10 +93,19 @@ impl<const N: usize> Solver<N> {
 			return;
 		};
 		let digit_value = u64::from(digit_value);
+		let mut candidates = [0; N];
 		for i in 0..(N - 1) {
-			self.row[i] = self.row[i].max(self.row[i + 1] * 10 + digit_value);
+			candidates[i] = self.row[i + 1];
 		}
-		self.row[N - 1] = self.row[N - 1].max(digit_value);
+		for i in 0..N {
+			candidates[i] *= 10;
+		}
+		for i in 0..N {
+			candidates[i] += digit_value;
+		}
+		for i in 0..N {
+			self.row[i] = self.row[i].max(candidates[i]);
+		}
 	}
 
 	fn finalize(self) -> u64 {
@@ -143,5 +152,6 @@ mod tests {
 		assert_eq!(part2("282222811111119"), 822811111119);
 		assert_eq!(part2("282342811111119"), 842811111119);
 		assert_eq!(part2("822942811111119"), 942811111119);
+		assert_eq!(part2("818888818888818"), 888888888888);
 	}
 }
