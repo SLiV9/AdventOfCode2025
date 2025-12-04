@@ -73,6 +73,14 @@ impl Floor {
 				num_changes += update_square(top, mid, bot)
 			}
 		}
+		for r in 0..self.n_rows {
+			let row = &mut self.grid[r + 1];
+			for c in 0..self.n_cols {
+				if row[c + 1] == b'x' {
+					row[c + 1] = b' ';
+				}
+			}
+		}
 		num_changes
 	}
 }
@@ -99,8 +107,19 @@ fn has_roll(cell: u8) -> u8 {
 }
 
 #[aoc(day4, part2)]
-pub fn part2(input: &str) -> u64 {
-	input.len() as u64
+pub fn part2(input: &str) -> usize {
+	let mut floor = Floor::default();
+	floor.fill(input);
+	log::debug!("{floor}");
+	let mut num_rolls_removed = 0;
+	loop {
+		let n = floor.iterate();
+		log::debug!("{floor}");
+		if n == 0 {
+			return num_rolls_removed;
+		}
+		num_rolls_removed += n;
+	}
 }
 
 #[cfg(test)]
@@ -146,6 +165,6 @@ mod tests {
 @.@@@.@@@@
 .@@@@@@@@.
 @.@.@@@.@.";
-		assert_eq!(part2(given), 3121910778619);
+		assert_eq!(part2(given), 43);
 	}
 }
