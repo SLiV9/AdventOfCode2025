@@ -1,7 +1,6 @@
 #[aoc(day5, part1)]
 pub fn part1(input: &str) -> usize {
 	let mut toggles = Vec::with_capacity(512);
-	toggles.push(u64::MAX);
 	let mut lines = input.lines();
 	loop {
 		let line = lines.next().unwrap();
@@ -10,6 +9,8 @@ pub fn part1(input: &str) -> usize {
 		}
 		let (a, b) = parse_range(line);
 		add_inclusive_range_to_toggle_set(&mut toggles, a, b);
+		debug_assert!(is_in_toggle_set(&toggles, a));
+		debug_assert!(is_in_toggle_set(&toggles, b));
 	}
 	lines
 		.map(|x| x.parse().unwrap())
@@ -48,7 +49,7 @@ fn add_inclusive_range_to_toggle_set(toggles: &mut Vec<u64>, a: u64, b_inclusive
 		}
 		Err(i_a) => {
 			include_a = false;
-			splice_start = i_a + 1;
+			splice_start = i_a;
 		}
 		Ok(i_a) => {
 			include_a = false;
@@ -89,7 +90,6 @@ fn add_inclusive_range_to_toggle_set(toggles: &mut Vec<u64>, a: u64, b_inclusive
 }
 
 fn is_in_toggle_set(toggles: &[u64], x: u64) -> bool {
-	debug_assert!(x < u64::MAX);
 	// If it is > toggles[0] and < toggles[1], it is in the set.
 	// If it is == toggles[0], it is in the set.
 	// If it is == toggles[1], it is not in the set.
@@ -155,8 +155,6 @@ mod tests {
 	#[test]
 	fn test_is_in_toggle_set() {
 		let check = |toggles: &[u64], x: u64, expected: bool| {
-			let mut toggles = toggles.to_vec();
-			toggles.push(u64::MAX);
 			assert_eq!(is_in_toggle_set(&toggles, x), expected);
 		};
 
@@ -177,9 +175,8 @@ mod tests {
 	fn test_add_inclusive_range_to_toggle_set() {
 		let check = |before: &[u64], a: u64, b: u64, after: &[u64]| {
 			let mut toggles = before.to_vec();
-			toggles.push(u64::MAX);
 			add_inclusive_range_to_toggle_set(&mut toggles, a, b);
-			assert_eq!(&toggles[..toggles.len() - 1], after);
+			assert_eq!(&toggles, after);
 		};
 
 		check(&[], 10, 19, &[10, 20]);
@@ -188,7 +185,22 @@ mod tests {
 		check(&[10, 20], 30, 30, &[10, 20, 30, 31]);
 		check(&[10, 20], 20, 20, &[10, 21]);
 		check(&[10, 20], 10, 10, &[10, 20]);
+		check(&[10, 20], 10, 20, &[10, 21]);
 		check(&[10, 20], 9, 9, &[9, 20]);
 		check(&[10, 20], 5, 25, &[5, 26]);
+		check(&[10, 20, 21, 30], 5, 25, &[5, 30]);
+		check(&[10, 20, 21, 30], 5, 35, &[5, 36]);
+		check(&[10, 20, 21, 30], 10, 35, &[10, 36]);
+		check(&[10, 20, 30, 40], 20, 29, &[10, 40]);
+		check(&[10, 20, 30, 40], 20, 30, &[10, 40]);
+		check(&[10, 20, 30, 40], 20, 31, &[10, 40]);
+		check(&[10, 20, 30, 40], 10, 31, &[10, 40]);
+		check(&[10, 20, 30, 40], 9, 50, &[9, 51]);
+		check(
+			&[10, 20, 807, 9620, 9900, 9901],
+			9619,
+			9623,
+			&[10, 20, 807, 9624, 9900, 9901],
+		);
 	}
 }
