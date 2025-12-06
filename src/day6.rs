@@ -1,5 +1,11 @@
 #[aoc(day6, part1)]
 pub fn part1(input: &str) -> u64 {
+	let answer = part1_second_approach(input);
+	debug_assert_eq!(answer, part1_first_approach(input));
+	answer
+}
+
+pub fn part1_first_approach(input: &str) -> u64 {
 	let mut lines: Vec<&str> = input.lines().filter(|x| !x.is_empty()).collect();
 	let last_line = lines.pop().unwrap();
 	let operators: Vec<u8> = last_line.bytes().filter(|x| b"+*".contains(x)).collect();
@@ -39,6 +45,70 @@ pub fn part1(input: &str) -> u64 {
 	}
 	let sum_of_muls: u64 = mul_a.into_iter().sum();
 	sum_of_adds + sum_of_muls
+}
+
+pub fn part1_second_approach(input: &str) -> u64 {
+	let mut lines: Vec<&str> = input.lines().filter(|x| !x.is_empty()).collect();
+	let last_line = lines.pop().unwrap();
+	let is_mul: Vec<u8> = last_line
+		.bytes()
+		.filter_map(|x| match x {
+			b'+' => Some(0),
+			b'*' => Some(1),
+			_ => None,
+		})
+		.collect();
+	let n = is_mul.len();
+
+	let parse_number_line = |line: &str| {
+		let mut numbers = vec![0u64; n];
+		let mut i = 0;
+		let mut number = 0;
+		for x in line.as_bytes() {
+			match x {
+				b' ' => {
+					if number > 0 {
+						numbers[i] = number;
+						i += 1;
+						number = 0;
+					}
+				}
+				_ => {
+					debug_assert!((b'0'..=b'9').contains(&x));
+					number *= 10;
+					number += u64::from(x - b'0');
+				}
+			}
+		}
+		if i < n {
+			numbers[i] = number;
+			i += 1;
+		}
+		assert_eq!(i, n);
+		numbers
+	};
+
+	let lines: Vec<Vec<u64>> = lines.into_iter().map(parse_number_line).collect();
+	let mut lines = lines.into_iter();
+	let a = lines.next().unwrap();
+	let mut adds = a.clone();
+	let mut muls = a;
+	assert_eq!(adds.len(), n);
+	assert_eq!(muls.len(), n);
+	while let Some(b) = lines.next() {
+		assert_eq!(b.len(), n);
+		for i in 0..n {
+			adds[i] += b[i];
+			muls[i] *= b[i];
+		}
+	}
+
+	let mut grand_total = 0;
+	for i in 0..n {
+		let is_mul = u64::from(is_mul[i]);
+		grand_total += if is_mul > 0 { muls[i] } else { adds[i] };
+	}
+	grand_total
 }
 
 #[aoc(day6, part2)]
