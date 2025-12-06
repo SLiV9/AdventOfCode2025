@@ -100,8 +100,20 @@ fn is_in_toggle_set(toggles: &[u64], x: u64) -> bool {
 }
 
 #[aoc(day5, part2)]
-pub fn part2(input: &str) -> usize {
-	input.len()
+pub fn part2(input: &str) -> u64 {
+	let mut toggles = Vec::with_capacity(512);
+	let mut lines = input.lines();
+	loop {
+		let line = lines.next().unwrap();
+		if line.is_empty() {
+			break;
+		}
+		let (a, b) = parse_range(line);
+		add_inclusive_range_to_toggle_set(&mut toggles, a, b);
+		debug_assert!(is_in_toggle_set(&toggles, a));
+		debug_assert!(is_in_toggle_set(&toggles, b));
+	}
+	toggles.chunks_exact(2).map(|pair| pair[1] - pair[0]).sum()
 }
 
 #[cfg(test)]
@@ -149,7 +161,7 @@ mod tests {
 11
 17
 32";
-		assert_eq!(part2(given), 43);
+		assert_eq!(part2(given), 14);
 	}
 
 	#[test]
