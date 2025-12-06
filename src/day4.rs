@@ -3,7 +3,7 @@ pub fn part1(input: &str) -> usize {
 	let mut floor = Floor::default();
 	floor.fill(input);
 	log::debug!("{floor}");
-	let num_rolls_removed = floor.iterate();
+	let num_rolls_removed = floor.iterate(b'x');
 	log::debug!("{floor}");
 	num_rolls_removed
 }
@@ -57,7 +57,7 @@ impl Floor {
 		}
 	}
 
-	fn iterate(&mut self) -> usize {
+	fn iterate(&mut self, replacement: u8) -> usize {
 		let mut num_changes = 0;
 		assert!(self.n_rows + 3 <= 256);
 		assert!(self.n_cols + 3 <= 256);
@@ -70,22 +70,14 @@ impl Floor {
 				let top: &[u8; 3] = top_row[c..].first_chunk().unwrap();
 				let mid: &mut [u8; 3] = mid_row[c..].first_chunk_mut().unwrap();
 				let bot: &[u8; 3] = bot_row[c..].first_chunk().unwrap();
-				num_changes += update_square(top, mid, bot)
-			}
-		}
-		for r in 0..self.n_rows {
-			let row = &mut self.grid[r + 1];
-			for c in 0..self.n_cols {
-				if row[c + 1] == b'x' {
-					row[c + 1] = b' ';
-				}
+				num_changes += update_square(top, mid, bot, replacement)
 			}
 		}
 		num_changes
 	}
 }
 
-fn update_square(top: &[u8; 3], mid: &mut [u8; 3], bot: &[u8; 3]) -> usize {
+fn update_square(top: &[u8; 3], mid: &mut [u8; 3], bot: &[u8; 3], replacement: u8) -> usize {
 	let num_surrounding = has_roll(top[0])
 		+ has_roll(top[1])
 		+ has_roll(top[2])
@@ -95,7 +87,7 @@ fn update_square(top: &[u8; 3], mid: &mut [u8; 3], bot: &[u8; 3]) -> usize {
 		+ has_roll(bot[1])
 		+ has_roll(bot[2]);
 	if num_surrounding < 4 && mid[1] == b'@' {
-		mid[1] = b'x';
+		mid[1] = replacement;
 		1
 	} else {
 		0
@@ -103,7 +95,7 @@ fn update_square(top: &[u8; 3], mid: &mut [u8; 3], bot: &[u8; 3]) -> usize {
 }
 
 fn has_roll(cell: u8) -> u8 {
-	u8::from(cell == b'@' || cell == b'x')
+	u8::from(cell >= b'@')
 }
 
 #[aoc(day4, part2)]
@@ -113,7 +105,7 @@ pub fn part2(input: &str) -> usize {
 	log::debug!("{floor}");
 	let mut num_rolls_removed = 0;
 	loop {
-		let n = floor.iterate();
+		let n = floor.iterate(b' ');
 		log::debug!("{floor}");
 		if n == 0 {
 			return num_rolls_removed;
