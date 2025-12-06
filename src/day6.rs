@@ -17,9 +17,8 @@ pub fn part1(input: &str) -> u64 {
 			let operator = operators.next().unwrap();
 			match operator {
 				b'*' => mul.push(number),
-				b'+' => sum_of_adds += number,
-				_ => {
-					debug_assert!(false);
+				b'+' | _ => {
+					debug_assert_eq!(operator, b'+');
 					sum_of_adds += number;
 				}
 			}
@@ -44,7 +43,53 @@ pub fn part1(input: &str) -> u64 {
 
 #[aoc(day6, part2)]
 pub fn part2(input: &str) -> u64 {
-	input.len() as u64
+	let mut lines: Vec<&[u8]> = input
+		.lines()
+		.filter(|x| !x.is_empty())
+		.map(|x| x.as_bytes())
+		.collect();
+	let last_line = lines.pop().unwrap();
+	let mut grand_total = 0;
+	let mut i = last_line.len();
+	for line in &lines {
+		assert_eq!(line.len(), last_line.len());
+	}
+	let mut stack = [0u64; 16];
+	let mut stack_depth: usize = 0;
+	while i > 0 {
+		i -= 1;
+		let mut number = 0;
+		for line in &lines {
+			let x = line[i];
+			if x == b' ' {
+				continue;
+			};
+			debug_assert!((b'0'..=b'9').contains(&x));
+			number *= 10;
+			number += u64::from(x - b'0');
+		}
+		stack[stack_depth] = number;
+		stack_depth += 1;
+		match last_line[i] {
+			b'+' => {
+				let sum: u64 = stack[..stack_depth].into_iter().sum();
+				grand_total += sum;
+				stack_depth = 0;
+			}
+			b'*' => {
+				let product: u64 = stack[..stack_depth].into_iter().product();
+				grand_total += product;
+				stack_depth = 0;
+			}
+			b' ' | _ => {
+				debug_assert_eq!(last_line[i], b' ');
+				if number == 0 {
+					stack_depth = 0;
+				}
+			}
+		}
+	}
+	grand_total
 }
 
 #[cfg(test)]
@@ -74,10 +119,12 @@ mod tests {
 	fn test_part2_given() {
 		init_logger();
 
-		let given = "123 328  51 64
- 45 64  387 23
-  6 98  215 314
-*   +   *   +  ";
-		assert_eq!(part2(given), 0);
+		let given = "123 328  51 64 \n 45 64  387 23 \n  6 98  215 314\n*   +   *   +  ";
+		assert_eq!(part2(given), 3263827);
+	}
+
+	#[test]
+	fn test_part2_testcases() {
+		assert_eq!(part2("64 \n23 \n314\n+  "), 1058);
 	}
 }
