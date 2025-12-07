@@ -1,6 +1,6 @@
 #[aoc(day7, part1)]
 pub fn part1(input: &str) -> u64 {
-	let mut has_beam = [0u8; 1024];
+	let mut has_beam = [0u64; 1024];
 	let mut number_of_splits = 0;
 	let mut lines = input.lines();
 	let first_line = lines.next().expect("non-empty input");
@@ -17,8 +17,8 @@ pub fn part1(input: &str) -> u64 {
 		let mut delayed_store = 0;
 		for i in 1..k {
 			let is_splitter = line[i] == b'^';
-			let split_mask = if is_splitter { u8::MAX } else { 0 };
-			let is_split: u8 = has_beam[i] & split_mask;
+			let split_mask = if is_splitter { u64::MAX } else { 0 };
+			let is_split = has_beam[i] & split_mask;
 			number_of_splits += u64::from(is_split);
 			has_beam[i - 1] |= is_split;
 			has_beam[i] &= !is_split;
