@@ -30,7 +30,30 @@ pub fn part1(input: &str) -> u64 {
 
 #[aoc(day7, part2)]
 pub fn part2(input: &str) -> u64 {
-	input.len() as u64
+	let mut timelines = [0u64; 1024];
+	let mut lines = input.lines();
+	let first_line = lines.next().unwrap();
+	let first_line = first_line.as_bytes();
+	// Adding one to simplify logic, and rounding up to the nearest multiple of 8.
+	let n = (first_line.len() / 8 + 1) * 8;
+	let timelines = &mut timelines[..n];
+	let start_pos = first_line.iter().copied().position(|x| x == b'S').unwrap();
+	timelines[start_pos] = 1;
+	for line in lines {
+		let line = line.as_bytes();
+		let k = n.min(line.len());
+		let mut delayed_store = 0;
+		for i in 1..k {
+			let is_splitter = line[i] == b'^';
+			let split_mask = if is_splitter { u64::MAX } else { 0 };
+			let split_timelines: u64 = timelines[i] & split_mask;
+			timelines[i - 1] += split_timelines;
+			timelines[i] -= split_timelines;
+			timelines[i] += delayed_store;
+			delayed_store = split_timelines;
+		}
+	}
+	timelines.iter().sum()
 }
 
 #[cfg(test)]
@@ -73,6 +96,6 @@ mod tests {
 	fn test_part2_given() {
 		init_logger();
 
-		assert_eq!(part2(GIVEN), 0);
+		assert_eq!(part2(GIVEN), 40);
 	}
 }
