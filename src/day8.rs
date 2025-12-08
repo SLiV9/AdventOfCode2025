@@ -108,20 +108,24 @@ pub fn part2(input: &str) -> i64 {
 		i
 	};
 
-	let mut edge_matrix = vec![[0i64; 1024]; 1024];
+	let stride = (n / 32 + 1) * 32;
+	assert!(stride <= 1024);
+	assert!(n < stride);
+	let mut edge_matrix = vec![0i64; n * stride];
 
 	for i in 0..n {
 		let x0 = xs[i];
 		let y0 = ys[i];
 		let z0 = zs[i];
-		for j in 0..n {
+		let edges = &mut edge_matrix[(i * stride)..(i * stride + stride)];
+		for j in 0..stride {
 			let dx = i64::from(xs[j] - x0);
 			let dy = i64::from(ys[j] - y0);
 			let dz = i64::from(zs[j] - z0);
 			let squared_euclidean = dx * dx + dy * dy + dz * dz;
-			edge_matrix[i][j] = squared_euclidean;
+			edges[j] = squared_euclidean;
 		}
-		edge_matrix[i][i] = i64::MAX;
+		edges[i] = i64::MAX;
 	}
 
 	let mut min_cost = vec![i64::MAX; n];
@@ -130,28 +134,28 @@ pub fn part2(input: &str) -> i64 {
 	while let Some(i) = position_of_smallest_positive(&min_cost) {
 		min_cost[i] = 0;
 		for j in 0..n {
-			let is_shortcut = edge_matrix[i][j] < min_cost[j];
+			let is_shortcut = edge_matrix[i * stride + j] < min_cost[j];
 			let is_unexplored = min_cost[j] > 0;
 			if is_shortcut {
 				debug_assert!(is_unexplored);
-				min_cost[j] = edge_matrix[i][j];
+				min_cost[j] = edge_matrix[i * stride + j];
 				min_edge_with[j] = i;
 			}
 		}
 	}
 	let mut max_edge = 0;
-	let mut max_edge_x0 = 0;
-	let mut max_edge_x1 = 0;
+	let mut max_edge_i = 0;
+	let mut max_edge_j = 0;
 	for i in 1..n {
 		let j = min_edge_with[i];
 		debug_assert_ne!(i, j);
-		if edge_matrix[i][j] > max_edge {
-			max_edge = edge_matrix[i][j];
-			max_edge_x0 = xs[i];
-			max_edge_x1 = xs[j];
+		if edge_matrix[i * stride + j] > max_edge {
+			max_edge = edge_matrix[i * stride + j];
+			max_edge_i = i;
+			max_edge_j = j;
 		}
 	}
-	i64::from(max_edge_x0) * i64::from(max_edge_x1)
+	i64::from(xs[max_edge_i]) * i64::from(xs[max_edge_j])
 }
 
 fn position_of_smallest_positive(min_cost: &[i64]) -> Option<usize> {
