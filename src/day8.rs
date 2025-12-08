@@ -34,10 +34,10 @@ pub fn solve_part1(input: &str, num_connections: usize) -> u64 {
 			}
 			connections.push((squared_euclidean, i, j));
 		}
-		if connections.len() >= 1000 {
+		if connections.len() >= num_connections {
 			connections.sort();
-			cutoff = connections[999].0;
-			connections.drain(1000..);
+			cutoff = connections[num_connections - 1].0;
+			connections.drain(num_connections..);
 		}
 	}
 	connections.sort();
@@ -93,70 +93,77 @@ pub fn solve_part1(input: &str, num_connections: usize) -> u64 {
 
 #[aoc(day8, part2)]
 pub fn part2(input: &str) -> i64 {
-	let mut xs: Vec<i32> = Vec::with_capacity(1024);
-	let mut ys: Vec<i32> = Vec::with_capacity(1024);
-	let mut zs: Vec<i32> = Vec::with_capacity(1024);
-	let mut cs: Vec<u32> = Vec::with_capacity(1024);
-	for line in input.lines() {
-		let point: Point = line.parse().unwrap();
-		xs.push(point.x as i32);
-		ys.push(point.y as i32);
-		zs.push(point.z as i32);
-		cs.push(0);
-	}
-	let num_boxes = xs.len();
+	let mut xs = vec![0; 1024];
+	let mut ys = vec![0; 1024];
+	let mut zs = vec![0; 1024];
+	let n = {
+		let mut i = 0;
+		for line in input.lines() {
+			let point: Point = line.parse().unwrap();
+			xs[i] = point.x as i32;
+			ys[i] = point.y as i32;
+			zs[i] = point.z as i32;
+			i += 1;
+		}
+		i
+	};
 
-	// Ouch.
-	let mut connections: Vec<(i64, usize, usize)> = Vec::with_capacity(xs.len() * xs.len());
-	for i in 0..xs.len() {
+	let mut edge_matrix = vec![[0i64; 1024]; 1024];
+
+	for i in 0..n {
 		let x0 = xs[i];
 		let y0 = ys[i];
 		let z0 = zs[i];
-		for j in 0..i {
+		for j in 0..n {
 			let dx = i64::from(xs[j] - x0);
 			let dy = i64::from(ys[j] - y0);
 			let dz = i64::from(zs[j] - z0);
 			let squared_euclidean = dx * dx + dy * dy + dz * dz;
-			connections.push((squared_euclidean, i, j));
+			edge_matrix[i][j] = squared_euclidean;
 		}
+		edge_matrix[i][i] = i64::MAX;
 	}
-	connections.sort();
 
-	let mut next_unused_color = 1;
-	let mut color_ids: Vec<Vec<usize>> = vec![Vec::new()];
-	for (_dist, i, j) in connections.into_iter() {
-		let c = match (cs[i], cs[j]) {
-			(0, 0) => {
-				let c = next_unused_color;
-				next_unused_color += 1;
-				color_ids.push(vec![i, j]);
-				c
+	let mut min_cost = vec![i64::MAX; n];
+	let mut min_edge_with = vec![0; n];
+	min_cost[0] = 1;
+	while let Some(i) = position_of_smallest_positive(&min_cost) {
+		min_cost[i] = 0;
+		for j in 0..n {
+			let is_shortcut = edge_matrix[i][j] < min_cost[j];
+			let is_unexplored = min_cost[j] > 0;
+			if is_shortcut {
+				debug_assert!(is_unexplored);
+				min_cost[j] = edge_matrix[i][j];
+				min_edge_with[j] = i;
 			}
-			(c, 0) => {
-				color_ids[c as usize].push(j);
-				c
-			}
-			(0, c) => {
-				color_ids[c as usize].push(i);
-				c
-			}
-			(c0, c1) if c0 == c1 => continue,
-			(c0, c1) => {
-				let consumed: Vec<usize> = std::mem::take(&mut color_ids[c1 as usize]);
-				color_ids[c0 as usize].extend_from_slice(&consumed);
-				for k in consumed {
-					cs[k] = c0;
-				}
-				c0
-			}
-		};
-		if color_ids[c as usize].len() >= num_boxes {
-			return i64::from(xs[i]) * i64::from(xs[j]);
 		}
-		cs[i] = c;
-		cs[j] = c;
 	}
-	unreachable!()
+	let mut max_edge = 0;
+	let mut max_edge_x0 = 0;
+	let mut max_edge_x1 = 0;
+	for i in 1..n {
+		let j = min_edge_with[i];
+		debug_assert_ne!(i, j);
+		if edge_matrix[i][j] > max_edge {
+			max_edge = edge_matrix[i][j];
+			max_edge_x0 = xs[i];
+			max_edge_x1 = xs[j];
+		}
+	}
+	i64::from(max_edge_x0) * i64::from(max_edge_x1)
+}
+
+fn position_of_smallest_positive(min_cost: &[i64]) -> Option<usize> {
+	let mut best_i = None;
+	let mut best_cost = i64::MAX;
+	for i in 0..min_cost.len() {
+		if min_cost[i] > 0 && min_cost[i] < best_cost {
+			best_cost = min_cost[i];
+			best_i = Some(i);
+		}
+	}
+	best_i
 }
 
 #[derive(Display, FromStr, Clone, Copy, Debug, Default, PartialEq)]
@@ -212,5 +219,11 @@ mod tests {
 		init_logger();
 
 		assert_eq!(part2(GIVEN), 25272);
+	}
+
+	#[test]
+	fn test_part2_testcase() {
+		let text = "1,3,1\n5,1,1\n6,2,1\n10,9,1\n7,32,1";
+		assert_eq!(part2(text), 10 * 7);
 	}
 }
