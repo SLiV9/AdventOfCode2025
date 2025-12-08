@@ -84,8 +84,71 @@ pub fn solve_part1(input: &str, num_connections: usize) -> u64 {
 }
 
 #[aoc(day8, part2)]
-pub fn part2(input: &str) -> u64 {
-	input.len() as u64
+pub fn part2(input: &str) -> i64 {
+	let mut xs: Vec<i32> = Vec::with_capacity(1024);
+	let mut ys: Vec<i32> = Vec::with_capacity(1024);
+	let mut zs: Vec<i32> = Vec::with_capacity(1024);
+	let mut cs: Vec<u32> = Vec::with_capacity(1024);
+	for line in input.lines() {
+		let point: Point = line.parse().unwrap();
+		xs.push(point.x as i32);
+		ys.push(point.y as i32);
+		zs.push(point.z as i32);
+		cs.push(0);
+	}
+	let num_boxes = xs.len();
+
+	// Ouch.
+	let mut connections: Vec<(i64, usize, usize)> = Vec::with_capacity(xs.len() * xs.len());
+	for i in 0..xs.len() {
+		let x0 = xs[i];
+		let y0 = ys[i];
+		let z0 = zs[i];
+		for j in 0..i {
+			let dx = i64::from(xs[j] - x0);
+			let dy = i64::from(ys[j] - y0);
+			let dz = i64::from(zs[j] - z0);
+			let squared_euclidean = dx * dx + dy * dy + dz * dz;
+			connections.push((squared_euclidean, i, j));
+		}
+	}
+	connections.sort();
+
+	let mut next_unused_color = 1;
+	let mut color_ids: Vec<Vec<usize>> = vec![Vec::new()];
+	for (_dist, i, j) in connections.into_iter() {
+		let c = match (cs[i], cs[j]) {
+			(0, 0) => {
+				let c = next_unused_color;
+				next_unused_color += 1;
+				color_ids.push(vec![i, j]);
+				c
+			}
+			(c, 0) => {
+				color_ids[c as usize].push(j);
+				c
+			}
+			(0, c) => {
+				color_ids[c as usize].push(i);
+				c
+			}
+			(c0, c1) if c0 == c1 => continue,
+			(c0, c1) => {
+				let consumed: Vec<usize> = std::mem::take(&mut color_ids[c1 as usize]);
+				color_ids[c0 as usize].extend_from_slice(&consumed);
+				for k in consumed {
+					cs[k] = c0;
+				}
+				c0
+			}
+		};
+		if color_ids[c as usize].len() >= num_boxes {
+			return i64::from(xs[i]) * i64::from(xs[j]);
+		}
+		cs[i] = c;
+		cs[j] = c;
+	}
+	unreachable!()
 }
 
 #[derive(Display, FromStr, Clone, Copy, Debug, Default, PartialEq)]
@@ -140,6 +203,6 @@ mod tests {
 	fn test_part2_given() {
 		init_logger();
 
-		assert_eq!(part2(GIVEN), 40);
+		assert_eq!(part2(GIVEN), 25272);
 	}
 }
