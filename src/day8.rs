@@ -18,8 +18,8 @@ pub fn solve_part1(input: &str, num_connections: usize) -> u64 {
 		cs.push(0);
 	}
 
-	// Ouch.
 	let mut connections: Vec<(i64, usize, usize)> = Vec::with_capacity(xs.len() * xs.len());
+	let mut cutoff = i64::MAX;
 	for i in 0..xs.len() {
 		let x0 = xs[i];
 		let y0 = ys[i];
@@ -29,7 +29,15 @@ pub fn solve_part1(input: &str, num_connections: usize) -> u64 {
 			let dy = i64::from(ys[j] - y0);
 			let dz = i64::from(zs[j] - z0);
 			let squared_euclidean = dx * dx + dy * dy + dz * dz;
+			if squared_euclidean > cutoff {
+				continue;
+			}
 			connections.push((squared_euclidean, i, j));
+		}
+		if connections.len() >= 1000 {
+			connections.sort();
+			cutoff = connections[999].0;
+			connections.drain(1000..);
 		}
 	}
 	connections.sort();

@@ -7,6 +7,8 @@
 *.out
 *.log
 *.log.gz
+/flamegraph*
+/perf*
 
 # private files
 src/bin/*/input*.txt
