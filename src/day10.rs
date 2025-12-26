@@ -65,58 +65,91 @@ fn assess_part2(line: &str) -> usize {
 
 	let buttons: &[u32] = &buttons[..];
 	let joltage: &[u32] = &joltage[..];
-	assert!(buttons.len() <= 15);
-	assert!(joltage.len() <= 15);
+	assert!(buttons.len() <= 16);
+	assert!(joltage.len() <= 16);
+	const DEPTH: usize = 1 << 16;
 
-	let mut answer = [0; 16];
-	for r in 0..joltage.len() {
-		answer[r] = joltage[r];
+	for &button in buttons {
+		debug_print("button", button);
 	}
-	answer[15] = 0;
-
-	let mut button_matrix = [[0u32; 16]; 16];
-	for c in 0..buttons.len() {
-		let mut button = buttons[c];
-		let mut r = 0;
-		while button != 0 {
-			if button & 0b1 != 0 {
-				button_matrix[r][c] = 1;
-			}
-			r += 1;
-			button >>= 1;
-		}
-		button_matrix[15][c] = 1;
+	for &jolt in joltage {
+		debug_print("joltage", jolt);
 	}
-	let button_matrix = button_matrix;
 
-	let mut max_presses_per_button = [0; 16];
-	for c in 0..buttons.len() {
-		let mut min = u32::MAX;
-		for r in 0..joltage.len() {
-			let value = joltage[r];
-			if value < min && button_matrix[r][c] != 0 {
-				min = value;
+	let mut equations: SmallVec<[u32; 16]> = SmallVec::new();
+	equations.resize(joltage.len(), 0);
+	{
+		for i in 0..joltage.len() {
+			for c in 0..buttons.len() {
+				if buttons[c] & (1 << i) != 0 {
+					equations[i] |= 1 << c;
+				}
 			}
 		}
-		max_presses_per_button[c] = min;
 	}
-	let max_presses_per_button = max_presses_per_button;
+	let equations: &[u32] = &equations[..];
+	assert_eq!(joltage.len(), equations.len());
+
+	for &equation in equations {
+		debug_print("equation", equation);
+	}
+
+	let max_joltage: u32 = joltage.iter().sum();
+
+	let mut lowers = [0; DEPTH];
+	let mut uppers = [max_joltage; DEPTH];
+	uppers[max_joltage as usize] = 0;
+
+	for i in 0..joltage.len() {
+		lowers[equations[i] as usize] = joltage[i];
+		uppers[equations[i] as usize] = joltage[i];
+	}
+
+	let improve_lower = |candidate: u32, value: &mut u32, progress: &mut bool| {
+		let is_improvement = candidate > *value;
+		if is_improvement {
+			*value = candidate;
+		}
+		*progress |= is_improvement;
+	};
+	let improve_upper = |candidate: u32, value: &mut u32, progress: &mut bool| {
+		let is_improvement = candidate < *value;
+		if is_improvement {
+			*value = candidate;
+		}
+		*progress |= is_improvement;
+	};
 
 	loop {
-		answer[15] += 1;
-		let presses = max_presses_per_button;
-		// TODO iterate through all possible presses that sum up to answre[15]???
-		if is_correct(&button_matrix, &presses, &answer) {
-			return answer[15] as usize;
+		let mut progress = false;
+		for a in 1..1024 {
+			for b in 1..a {
+				if a | b == b {
+					let c = b & !a;
+					debug_assert!(lowers[b] >= uppers[a]);
+					improve_lower(lowers[b] - uppers[a], &mut lowers[c], &mut progress);
+					debug_assert!(uppers[b] >= lowers[a]);
+					improve_upper(uppers[b] - lowers[a], &mut uppers[c], &mut progress);
+				} else {
+					if a & b == 0 {
+						improve_lower(lowers[a] + lowers[b], &mut lowers[a | b], &mut progress);
+					}
+					improve_upper(uppers[a] + uppers[b], &mut uppers[a | b], &mut progress);
+				}
+			}
 		}
-		todo!()
+		if !progress {
+			break;
+		}
 	}
+	let all = (1 << buttons.len()) - 1;
+	lowers[all] as usize
 }
 
 #[track_caller]
 fn debug_print(name: &str, value: u32) {
 	if cfg!(debug_assertions) {
-		println!("[{}:{}] {name} = {value:08b}", file!(), line!());
+		println!("[{}:{}] {name} = {value:08b} ({value})", file!(), line!());
 	}
 }
 
@@ -190,7 +223,7 @@ fn extract_joltage(joltage: &mut SmallVec<[u32; 16]>, bytes: &[u8], i: &mut usiz
 	}
 }
 
-fn is_correct(matrix: &[[u32; 16]; 16], vector: &[u32; 16], answer: &[u32; 16]) -> bool {
+pub fn is_correct(matrix: &[[u32; 16]; 16], vector: &[u32; 16], answer: &[u32; 16]) -> bool {
 	let mut result = [0; 16];
 	for r in 0..16 {
 		for c in 0..16 {
