@@ -1,0 +1,5 @@
+(library
+ (name aoc_2025_hardcaml)
+ (libraries core hardcaml)
+ (preprocess
+  (pps ppx_hardcaml ppx_jane)))

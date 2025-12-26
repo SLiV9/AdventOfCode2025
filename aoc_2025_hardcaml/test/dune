@@ -1,0 +1,12 @@
+(library
+ (name test_aoc_2025_hardcaml)
+ (libraries
+  core
+  hardcaml
+  aoc_2025_hardcaml
+  hardcaml_test_harness
+  hardcaml_waveterm
+  re)
+ (preprocess
+  (pps ppx_hardcaml ppx_jane))
+ (inline_tests))
