@@ -30,6 +30,12 @@ module States = struct
   [@@deriving sexp_of, compare ~localize, enumerate]
 end
 
+let maximum (a : t) (b : t) : t = Signal.mux2 (a >: b) a b
+
+let push_digit (num : t) (digit : t) : t =
+  (uresize num ~width:56 *: of_string "8'd10") +: digit
+;;
+
 let create scope ({ clock; clear; start; finish; data_in; data_in_valid } : _ I.t) : _ O.t
   =
   let spec = Reg_spec.create ~clock ~clear () in
@@ -74,15 +80,10 @@ let create scope ({ clock; clear; start; finish; data_in; data_in_valid } : _ I.
                 ; digit <-- uresize (uresize data_in ~width:4) ~width:64
                 ; digit_mask <-- mux2 is_digit.value (ones 64) (zero 64)
                 ; p1_sum <-- p1_sum.value +: mux2 is_digit.value (zero 64) p1_r0.value
-                ; p1_c0
-                  <-- (uresize p1_r1.value ~width:56 *: of_string "8'd10") +: digit.value
+                ; p1_c0 <-- push_digit p1_r1.value digit.value
                 ; p1_c1 <-- digit.value
-                ; p1_r0
-                  <-- (digit_mask.value
-                       &: mux2 (p1_c0.value >: p1_r0.value) p1_c0.value p1_r0.value)
-                ; p1_r1
-                  <-- (digit_mask.value
-                       &: mux2 (p1_c1.value >: p1_r1.value) p1_c1.value p1_r1.value)
+                ; p1_r0 <-- (digit_mask.value &: maximum p1_c0.value p1_r0.value)
+                ; p1_r1 <-- (digit_mask.value &: maximum p1_c1.value p1_r1.value)
                 ]
             ; when_ finish [ sm.set_next Done ]
             ] )
