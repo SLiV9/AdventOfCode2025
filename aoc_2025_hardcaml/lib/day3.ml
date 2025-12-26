@@ -35,11 +35,16 @@ let create scope ({ clock; clear; start; finish; data_in; data_in_valid } : _ I.
   let spec = Reg_spec.create ~clock ~clear () in
   let open Always in
   let sm = State_machine.create (module States) spec in
+  let%hw_var is_digit = Variable.reg spec ~width:1 in
+  let%hw_var digit = Variable.reg spec ~width:64 in
+  let%hw_var digit_mask = Variable.reg spec ~width:64 in
   let%hw_var p1_sum = Variable.reg spec ~width:64 in
-  let%hw_var p1_row0 = Variable.reg spec ~width:64 in
-  let%hw_var p1_row1 = Variable.reg spec ~width:64 in
-  let%hw_var p2_sum = Variable.reg spec ~width:64 in
-  let%hw_var p2_row0 = Variable.reg spec ~width:64 in
+  let%hw_var p1_r0 = Variable.reg spec ~width:64 in
+  let%hw_var p1_r1 = Variable.reg spec ~width:64 in
+  let%hw_var p1_c0 = Variable.reg spec ~width:64 in
+  let%hw_var p1_c1 = Variable.reg spec ~width:64 in
+  (* let%hw_var p2_sum = Variable.reg spec ~width:64 in *)
+  (* let%hw_var p2_r0 = Variable.reg spec ~width:64 in *)
   let part1 = Variable.wire ~default:(zero 64) () in
   let part1_valid = Variable.wire ~default:gnd () in
   let part2 = Variable.wire ~default:(zero 64) () in
@@ -49,22 +54,42 @@ let create scope ({ clock; clear; start; finish; data_in; data_in_valid } : _ I.
         [ ( Idle
           , [ when_
                 start
-                [ p1_sum <-- zero 64
-                ; p1_row0 <-- zero 64
-                ; p1_row1 <-- zero 64
-                ; p2_sum <-- zero 64
-                ; p2_row0 <-- zero 64
+                [ is_digit <-- zero 1
+                ; digit <-- zero 64
+                ; digit_mask <-- zero 64
+                ; p1_sum <-- zero 64
+                ; p1_r0 <-- zero 64
+                ; p1_r1 <-- zero 64
+                ; p1_c0 <-- zero 64
+                ; p1_c1 <-- zero 64
+                  (* ; p2_sum <-- zero 64 *)
+                  (* ; p2_r0 <-- zero 64 *)
                 ; sm.set_next Processing
                 ]
             ] )
         ; ( Processing
-          , [ when_ data_in_valid [ p1_sum <-- p1_sum.value +: uresize data_in ~width:64 ]
+          , [ when_
+                data_in_valid
+                [ is_digit <-- uresize (srl data_in ~by:4) ~width:1
+                ; digit <-- uresize (uresize data_in ~width:4) ~width:64
+                ; digit_mask <-- mux2 is_digit.value (ones 64) (zero 64)
+                ; p1_sum <-- p1_sum.value +: mux2 is_digit.value (zero 64) p1_r0.value
+                ; p1_c0
+                  <-- (uresize p1_r1.value ~width:56 *: of_string "8'd10") +: digit.value
+                ; p1_c1 <-- digit.value
+                ; p1_r0
+                  <-- (digit_mask.value
+                       &: mux2 (p1_c0.value >: p1_r0.value) p1_c0.value p1_r0.value)
+                ; p1_r1
+                  <-- (digit_mask.value
+                       &: mux2 (p1_c1.value >: p1_r1.value) p1_c1.value p1_r1.value)
+                ]
             ; when_ finish [ sm.set_next Done ]
             ] )
         ; ( Done
-          , [ part1 <-- p1_sum.value +: p1_row0.value
+          , [ part1 <-- p1_sum.value +: p1_r0.value
             ; part1_valid <-- vdd
-            ; part2 <-- p2_sum.value +: p2_row0.value
+            ; part2 <-- zero 64 (* ; part2 <-- p2_sum.value +: p2_r0.value *)
             ; part2_valid <-- vdd
             ; when_ finish [ sm.set_next Processing ]
             ] )

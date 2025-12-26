@@ -51,7 +51,15 @@ let waves_config =
   |> Waves_config.as_wavefile_format ~format:Hardcamlwaveform
 ;;
 
-let%expect_test "Simple test, optionally saving waveforms to disk" =
-  Harness.run_advanced ~waves_config ~create:Day3.hierarchical simple_testbench;
-  [%expect {| (Result (part1 44) (part2 4341) |}]
+let%expect_test "happy" =
+  Harness.run_advanced
+    ~waves_config
+    ~create:Day3.hierarchical
+    ~trace:`All_named
+    simple_testbench;
+  [%expect
+    {|
+    (Result (part1 44) (part2 4341))
+    Saved waves to /tmp/test_day3_ml_happy.hardcamlwaveform
+    |}]
 ;;
