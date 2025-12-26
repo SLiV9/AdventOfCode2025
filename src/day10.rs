@@ -68,6 +68,8 @@ fn assess_part2(line: &str) -> usize {
 	assert!(buttons.len() <= 16);
 	assert!(joltage.len() <= 16);
 	const DEPTH: usize = 1 << 16;
+	let end = 1 << buttons.len();
+	let all = end - 1;
 
 	for &button in buttons {
 		debug_print("button", button);
@@ -122,7 +124,7 @@ fn assess_part2(line: &str) -> usize {
 
 	loop {
 		let mut progress = false;
-		for a in 1..1024 {
+		for a in 1..end {
 			for b in 1..a {
 				if a | b == b {
 					let c = b & !a;
@@ -142,7 +144,11 @@ fn assess_part2(line: &str) -> usize {
 			break;
 		}
 	}
-	let all = (1 << buttons.len()) - 1;
+
+	// if cfg!(debug_assertions) {
+	// 	for i in 0..joltage.len() {}
+	// }
+
 	lowers[all] as usize
 }
 
