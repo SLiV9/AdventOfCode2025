@@ -100,7 +100,7 @@ fn assess_part2(line: &str) -> usize {
 
 	let mut lowers = [0; DEPTH];
 	let mut uppers = [max_joltage; DEPTH];
-	uppers[max_joltage as usize] = 0;
+	uppers[0] = 0;
 
 	for i in 0..joltage.len() {
 		lowers[equations[i] as usize] = joltage[i];
@@ -123,13 +123,18 @@ fn assess_part2(line: &str) -> usize {
 	};
 
 	loop {
+		debug_print_bounds(&lowers, &uppers, end);
 		let mut progress = false;
-		for a in 1..end {
-			for b in 1..a {
+		for b in 2..end {
+			for a in 1..b {
+				debug_assert!(a < b);
 				if a | b == b {
+					improve_lower(lowers[a], &mut lowers[b], &mut progress);
+					improve_upper(uppers[b], &mut uppers[a], &mut progress);
 					let c = b & !a;
-					debug_assert!(lowers[b] >= uppers[a]);
-					improve_lower(lowers[b] - uppers[a], &mut lowers[c], &mut progress);
+					if let Some(diff) = lowers[b].checked_sub(uppers[a]) {
+						improve_lower(diff, &mut lowers[c], &mut progress);
+					}
 					debug_assert!(uppers[b] >= lowers[a]);
 					improve_upper(uppers[b] - lowers[a], &mut uppers[c], &mut progress);
 				} else {
@@ -145,17 +150,26 @@ fn assess_part2(line: &str) -> usize {
 		}
 	}
 
-	// if cfg!(debug_assertions) {
-	// 	for i in 0..joltage.len() {}
-	// }
+	debug_print_bounds(&lowers, &uppers, end);
 
 	lowers[all] as usize
 }
 
-#[track_caller]
 fn debug_print(name: &str, value: u32) {
 	if cfg!(debug_assertions) {
-		println!("[{}:{}] {name} = {value:08b} ({value})", file!(), line!());
+		println!("{name} = {value:08b} ({value})");
+	}
+}
+
+fn debug_print_bounds(lowers: &[u32], uppers: &[u32], end: usize) {
+	if cfg!(debug_assertions) {
+		println!();
+		for eq in 0..end {
+			println!(
+				"{} <= {eq:08b} <= {}",
+				lowers[eq as usize], uppers[eq as usize]
+			);
+		}
 	}
 }
 
@@ -273,17 +287,40 @@ mod tests {
 	}
 
 	#[test]
-	fn test_part2_given() {
+	fn test_part2_simple() {
 		init_logger();
 
+		assert_eq!(assess_part2("[.] (0,1) (0,2) (1,2) {6,7,3}"), 8);
+
+		// Wait but a+b + a+c + b+c == 2a+2b+2c == 6+7+3 == 16, so answer is 8.
+		// But that does not mean that every solution can be found that way.
+	}
+
+	#[test]
+	fn test_part2_given_one() {
+		init_logger();
+
+		//
 		assert_eq!(
 			assess_part2("[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}"),
 			10
 		);
+	}
+
+	#[test]
+	fn test_part2_given_two() {
+		init_logger();
+
 		assert_eq!(
 			assess_part2("[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}"),
 			12
 		);
+	}
+
+	#[test]
+	fn test_part2_given_three() {
+		init_logger();
+
 		assert_eq!(
 			assess_part2("[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"),
 			11
