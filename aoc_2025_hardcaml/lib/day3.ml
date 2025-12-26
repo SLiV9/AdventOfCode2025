@@ -38,6 +38,8 @@ let create scope ({ clock; clear; start; finish; data_in; data_in_valid } : _ I.
   let%hw_var p1_sum = Variable.reg spec ~width:64 in
   let%hw_var p1_row0 = Variable.reg spec ~width:64 in
   let%hw_var p1_row1 = Variable.reg spec ~width:64 in
+  let%hw_var p2_sum = Variable.reg spec ~width:64 in
+  let%hw_var p2_row0 = Variable.reg spec ~width:64 in
   let part1 = Variable.wire ~default:(zero 64) () in
   let part1_valid = Variable.wire ~default:gnd () in
   let part2 = Variable.wire ~default:(zero 64) () in
@@ -50,6 +52,8 @@ let create scope ({ clock; clear; start; finish; data_in; data_in_valid } : _ I.
                 [ p1_sum <-- zero 64
                 ; p1_row0 <-- zero 64
                 ; p1_row1 <-- zero 64
+                ; p2_sum <-- zero 64
+                ; p2_row0 <-- zero 64
                 ; sm.set_next Processing
                 ]
             ] )
@@ -57,7 +61,13 @@ let create scope ({ clock; clear; start; finish; data_in; data_in_valid } : _ I.
           , [ when_ data_in_valid [ p1_sum <-- p1_sum.value +: uresize data_in ~width:64 ]
             ; when_ finish [ sm.set_next Done ]
             ] )
-        ; Done, [ part1_valid <-- vdd; when_ finish [ sm.set_next Processing ] ]
+        ; ( Done
+          , [ part1 <-- p1_sum.value +: p1_row0.value
+            ; part1_valid <-- vdd
+            ; part2 <-- p2_sum.value +: p2_row0.value
+            ; part2_valid <-- vdd
+            ; when_ finish [ sm.set_next Processing ]
+            ] )
         ]
     ];
   { part1 = { value = part1.value; valid = part1_valid.value }
