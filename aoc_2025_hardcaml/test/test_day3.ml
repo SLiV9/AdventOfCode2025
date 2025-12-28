@@ -6,9 +6,8 @@ module Day3 = Aoc_2025_hardcaml.Day3
 module Harness = Cyclesim_harness.Make (Day3.I) (Day3.O)
 
 let ( <--. ) = Bits.( <--. )
-let sample_input_values = [ 52; 51; 52; 49; 10 ]
 
-let simple_testbench (sim : Harness.Sim.t) =
+let simple_testbench (input : string) (sim : Harness.Sim.t) =
   let inputs = Cyclesim.inputs sim in
   let outputs = Cyclesim.outputs sim in
   let cycle ?n () = Cyclesim.cycle ?n sim in
@@ -30,7 +29,7 @@ let simple_testbench (sim : Harness.Sim.t) =
   cycle ();
   inputs.start := Bits.gnd;
   (* Input some data *)
-  List.iter sample_input_values ~f:(fun x -> feed_input x);
+  List.iter (String.to_list input) ~f:(fun x -> feed_input (Char.to_int x));
   inputs.finish := Bits.vdd;
   cycle ();
   inputs.finish := Bits.gnd;
@@ -52,14 +51,21 @@ let waves_config =
 ;;
 
 let%expect_test "happy" =
-  Harness.run_advanced
-    ~waves_config
-    ~create:Day3.hierarchical
-    ~trace:`All_named
-    simple_testbench;
+  Harness.run_advanced ~waves_config ~create:Day3.hierarchical (simple_testbench "4341");
   [%expect
     {|
     (Result (part1 44) (part2 4341))
     Saved waves to /tmp/test_day3_ml_happy.hardcamlwaveform
+    |}]
+;;
+
+let given = "987654321111111\n811111111111119\n234234234234278\n818181911112111"
+
+let%expect_test "given" =
+  Harness.run_advanced ~waves_config ~create:Day3.hierarchical (simple_testbench given);
+  [%expect
+    {|
+    (Result (part1 357) (part2 3121910778619))
+    Saved waves to /tmp/test_day3_ml_given.hardcamlwaveform
     |}]
 ;;
