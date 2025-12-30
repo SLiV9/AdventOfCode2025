@@ -69,3 +69,17 @@ let%expect_test "given" =
     Saved waves to /tmp/test_day3_ml_given.hardcamlwaveform
     |}]
 ;;
+
+let input_day3 = In_channel.read_all "../input/day3.txt"
+
+let%expect_test "input_day3" =
+  Harness.run_advanced
+    ~waves_config
+    ~create:Day3.hierarchical
+    (simple_testbench input_day3);
+  [%expect
+    {|
+    (Result (part1 XXXX5) (part2 XXXXXXXXXXXX598))
+    Saved waves to /tmp/test_day3_ml_input_day3.hardcamlwaveform
+    |}]
+;;

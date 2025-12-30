@@ -4,3 +4,4 @@ _build
 *.exe
 _opam
 
+input/

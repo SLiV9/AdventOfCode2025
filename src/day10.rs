@@ -156,13 +156,13 @@ fn assess_part2(line: &str) -> usize {
 }
 
 fn debug_print(name: &str, value: u32) {
-	if cfg!(debug_assertions) {
+	if cfg!(debug_assertions) && false {
 		println!("{name} = {value:08b} ({value})");
 	}
 }
 
 fn debug_print_bounds(lowers: &[u32], uppers: &[u32], end: usize) {
-	if cfg!(debug_assertions) {
+	if cfg!(debug_assertions) && false {
 		println!();
 		for eq in 0..end {
 			println!(
